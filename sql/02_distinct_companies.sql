@@ -1,2 +1,0 @@
-select distinct sigagente
-from public.interrupcoes_energia_2025
