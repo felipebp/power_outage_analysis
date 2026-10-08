@@ -1,4 +1,4 @@
-# Power Outage Analysis - ANEEL 2025
+# Power Outage Analysis (2025) x DATACENTERS 
 
 ## Motivação
 
@@ -29,18 +29,66 @@ limit 10;
 
 ## Etapa de Análise
 
-### Top 10 - Distribuidoras com mais quedas de energia
+### Top 10 - Distribuidoras com mais quedas de energia do NE
 ```sql
 select 
-	sigagente,
+	sigagente as electric_utility,
 	count (*) as total_occurrences
-from public.interrupcoes_energia_2025
+from public.interrupcoes_energia_2025 ie 
+where 
+	upper(trim(sigagente)) in (
+		'ENEL CE', 
+		'COELBA', 
+		'COSERN', 
+		'EQUATORIAL AL', 
+		'EQUATORIAL PI',
+		'NEOENERGIA PE',
+		'EPB',
+		'EQUATORIAL MA',
+		'ESE',
+		'SULGIPE'
+		)
 group by sigagente
 order by total_occurrences desc
-limit 10;
 ```
 
-<img width="343" height="290" alt="image" src="https://github.com/user-attachments/assets/1ef75d83-c80b-43d4-a9a0-898d54d181a3" />
+<img width="346" height="217" alt="image" src="https://github.com/user-attachments/assets/1e7d2acf-cb9c-4d1a-8a8b-f3fc6f798715" />
+
+### Top 10 - Quedas Imprevistas
+
+Apesar da lista acima rankear as empresas em função da quantidade de desligamentos, faz-se necessário, a fim de eliminar outliers/missing values e manter o rigor da análise, filtrar por quedas não programadas e que na base de dados contenham data e hora registradas, além de obedecerem a lógica: datafiminterrupcao > datainiciointerrupcao, para que a duração da queda seja positiva.
+
+
+```sql
+select 
+	sigagente as electric_utility,
+	count (*) as total_occurrences
+
+from public.interrupcoes_energia_2025
+
+where 
+	upper(trim(sigagente)) in (
+		'ENEL CE', 
+		'COELBA', 
+		'COSERN', 
+		'EQUATORIAL AL', 
+		'EQUATORIAL PI',
+		'NEOENERGIA PE',
+		'EPB',
+		'EQUATORIAL MA',
+		'ESE',
+		'SULGIPE'
+	)
+	and dsctipointerrupcao = 'Não Programada'
+	and datafiminterrupcao is not null
+	and datainiciointerrupcao is not null
+	and datafiminterrupcao > datainiciointerrupcao
+
+group by sigagente
+order by total_occurrences desc
+```
+<img width="436" height="285" alt="image" src="https://github.com/user-attachments/assets/d90f33f7-4129-4568-9c51-129cfc12b4ca" />
+
 
 ### Top 10 - Distribuidoras mais demoradas para reestabelecer a energia
 ```SQL
