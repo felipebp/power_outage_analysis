@@ -2,7 +2,7 @@
 
 ## Motivação
 
-A iniciativa decorre da crescente demanda do setor industrial brasileiro por recursos energéticos com disponibilidade constante. Nesse sentido, torna-se indispensável a análise das interrupções no fornecimento de energia elétrica, a fim de mitigar prejuízos logísticos e operacionais das bases já instaladas, bem como nortear o planejamento estratégico na tomada de decisões.
+A iniciativa decorre da crescente construção de datacenters no Brasil, em especial na região Nordeste, por congregar fatores locacionais atrativos. Entretanto, a segurança energética de alguns polos de interesse pode ser um fator de risco, haja vista a elevada e constante demanda por eletricidade na manutenção desses grandes centros de dados. Nesse sentido, torna-se indispensável a análise das interrupções no fornecimento de energia elétrica nessa região, a fim de mitigar prejuízos logísticos e operacionais das bases já instaladas, bem como nortear o planejamento estratégico na tomada de decisões.
 
 ## Stack
 
