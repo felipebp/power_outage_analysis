@@ -90,59 +90,77 @@ order by total_occurrences desc
 <img width="436" height="285" alt="image" src="https://github.com/user-attachments/assets/d90f33f7-4129-4568-9c51-129cfc12b4ca" />
 
 
+### Padrão da Distribuição da Amostra
+
+```SQL
+select
+	-- Média (sensível a outliers)
+	round(avg(extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2) as mean_hours,
+	
+	-- Mediana / P50 (resistente a outliers)
+	round(percentile_cont(0.5) within group(order by extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2) as median_hours,
+	
+	-- Desvio Padrão (O quanto os dados variam em torno da média)
+	round(stddev(extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2) as std_hours
+	
+from public.interrupcoes_energia_2025
+	
+where 
+	upper(trim(sigagente)) in (
+	'ENEL CE', 
+	'COELBA', 
+	'COSERN', 
+	'EQUATORIAL AL', 
+	'EQUATORIAL PI',
+	'NEOENERGIA PE',
+	'EPB',
+	'EQUATORIAL MA',
+	'ESE',
+	'SULGIPE'
+	)
+	and dsctipointerrupcao = 'Não Programada'
+	and datafiminterrupcao is not null 
+	and datainiciointerrupcao is not null
+	and datafiminterrupcao > datainiciointerrupcao;
+```
+<img width="447" height="166" alt="Captura de tela 2026-10-13 140656" src="https://github.com/user-attachments/assets/363c8075-6f66-427f-884b-aebb0c57607d" />
+
+A análise descritiva nos permite identificar a grande assimetria (à direita) dos dados da amostra, pois enquanto a mediana evidencia que metade das quedas de energia foram resolvidas em 4,25 horas, a média mostra uma deturpação que eleva para 8,09 horas o tempo médio de religação da energia (isso ocorre devido os outliers representados nas interrupções esporádicas que demoram mais de um dia para serem corrigidas). Com relação ao desvio padrão, nota-se uma variação demasiada em torno da média, o que inviabiliza o método Z-score. Por fim, resta como opção segura, a utilização dos percentis P90 e P99 para representar a amostra analisada.
+
 ### Top 10 - Distribuidoras mais demoradas para reestabelecer a energia
 ```SQL
 select 
-	sigagente as eletric_utility,
+	sigagente,
 	
-	count(*) as total_occurrences,
+	round(percentile_cont(0.90) within group(order by extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2) as p90_hours,
 	
-	round(
-		percentile_cont(0.50) within group(
-			order by extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600
-		)::numeric, 2
-	) as median_time_hours,
+	round(percentile_cont(0.99) within group(order by extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2) as p99_hours
 	
-	round(
-		percentile_cont(0.90) within group(
-			order by extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600
-		)::numeric, 2
-	) as p90_time_hours,
-	
-	round(
-		avg(extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2
-	) as mean_time_hours,
-	
-	round(
-		max(extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600)::numeric, 2
-	) as max_hours
-	
-from 
-	public.interrupcoes_energia_2025
+from public.interrupcoes_energia_2025
 
 where 
-	datafiminterrupcao is not null
+	upper(trim(sigagente)) in (
+	'ENEL CE', 
+	'COELBA', 
+	'COSERN', 
+	'EQUATORIAL AL', 
+	'EQUATORIAL PI',
+	'NEOENERGIA PE',
+	'EPB',
+	'EQUATORIAL MA',
+	'ESE',
+	'SULGIPE'
+	)
+	and dsctipointerrupcao = 'Não Programada'
+	and datafiminterrupcao is not null
 	and datainiciointerrupcao is not null
 	and datafiminterrupcao > datainiciointerrupcao
-	and extract(epoch from(datafiminterrupcao - datainiciointerrupcao))/3600 <= 720
 
-group by 
-	sigagente 
-	
-having
-	count(*) > 6725
+group by sigagente
 
-order by 
-	median_time_hours desc
-
-limit 10;
+order by p99_hours desc
 ```
-Para garantir relevância estatística e evitar que micro-cooperativas distorçam a análise de risco, aplicou-se um filtro na cláusula HAVING, correspondente ao percentil 25 do volume nacional, restringindo a análise às distribuidoras com mais de 6762 ocorrências anuais. Além disso, em 99% dos casos as companhias levaram cerca de 44 horas para reestabelecer o fornecimento, dado esse obtido com o percentil 99, que permite descartar o 1% superior possívelmente referente a catástrofes ou erros de registro.
-
-<img width="1012" height="216" alt="image" src="https://github.com/user-attachments/assets/dbca23b7-45a3-4b86-84c9-ef8a79856a9a" />
-
-
-
+O resultado mostra que 99% das interrupções em estados como PI, BA, MA, PE levam mais de dois dias para serem corrigidas, o que pode inviabilizar a construção de datacenters nessas regiões. Nesse contexto, o ideal seria investir em regiões com infraestrutura elétrica mais resiliente, como SE, CE, RN, PB e AL. Essa escolha deve ser pautada pelo CAPEX envolvido principalmente na compra de geradores de alta capacidade e sistemas de UPS.
 
 
 
